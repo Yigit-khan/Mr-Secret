@@ -5,6 +5,7 @@ namespace TarodevController
     [CreateAssetMenu]
     public class ScriptableStats : ScriptableObject
     {
+        
         [Header("LAYERS")] [Tooltip("Set this to the layer your player is on")]
         public LayerMask PlayerLayer;
 
@@ -52,5 +53,9 @@ namespace TarodevController
 
         [Tooltip("The amount of time we buffer a jump. This allows jump input before actually hitting the ground")]
         public float JumpBuffer = .2f;
+        public virtual void Apply(GameObject target)
+        {
+            // Default implementation, can be empty or provide basic behavior if needed
+        }
     }
 }
