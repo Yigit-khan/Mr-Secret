@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
@@ -14,6 +15,7 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask groundObjects;
     public float checkRadius;
     public int maxJumpCount;
+    public Vector3 originalScale;
 
     private bool isGrounded;
     private Rigidbody2D rb;
@@ -21,6 +23,13 @@ public class PlayerMovement : MonoBehaviour
     private float moveDirection;
     private bool isJumping = false;
     private int jumpCount;
+
+    // Yeni dash değişkenleri
+    private bool canDash = true;
+    private bool isDashing;
+    public float dashPower = 20f;
+    public float dashDuration = 0.2f;
+    public float dashCooldown = 1f;
 
     private void Awake()
     {
@@ -30,15 +39,19 @@ public class PlayerMovement : MonoBehaviour
     private void Start()
     {
         jumpCount = maxJumpCount;
+        originalScale = transform.localScale;
     }
 
     void Update()
     {
         ProcessInputs();
-
         Animate();
-
         
+        // Dash'i tetikle
+        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash && !isDashing)
+        {
+            StartCoroutine(Dash());
+        }
     }
 
     private void FixedUpdate()
@@ -48,8 +61,9 @@ public class PlayerMovement : MonoBehaviour
         {
             jumpCount = maxJumpCount;
         }
-        
-        
+
+        if (isDashing) return; // Dash sırasında hareket işlemi durduruluyor
+
         Move();
     }
 
@@ -58,7 +72,7 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = new Vector2(moveDirection * moveSpeed, rb.velocity.y);
         if (isJumping && jumpCount > 0)
         {
-            rb.AddForce(new Vector2(0f, jumpForce));
+            rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
             jumpCount--;
         }
 
@@ -67,12 +81,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void Animate()
     {
-        
-        if (moveDirection > 0 && !facingRight )
+        if (moveDirection > 0 && !facingRight)
         {
             FlipCharacter();
         }
-        
         else if (moveDirection < 0 && facingRight)
         {
             FlipCharacter();
@@ -87,11 +99,30 @@ public class PlayerMovement : MonoBehaviour
             isJumping = true;
         }
     }
-    
 
     private void FlipCharacter()
     {
         facingRight = !facingRight;
         transform.Rotate(0f, 180f, 0f);
+    }
+
+    private IEnumerator Dash()
+    {
+        canDash = false;
+        isDashing = true;
+        float originalGravity = rb.gravityScale;
+        rb.gravityScale = 0f; // Yer çekimini kapatıyoruz
+
+        // Dash yönünü belirliyoruz
+        rb.velocity = new Vector2((facingRight ? 1 : -1) * dashPower, 0f);
+
+        yield return new WaitForSeconds(dashDuration);
+
+        rb.gravityScale = originalGravity; // Yer çekimini geri yüklüyoruz
+        isDashing = false;
+
+        // Dash bittiğinde normal harekete döner
+        yield return new WaitForSeconds(dashCooldown);
+        canDash = true;
     }
 }
